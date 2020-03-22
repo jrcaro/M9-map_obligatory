@@ -1,25 +1,13 @@
 import * as d3 from "d3";
 import * as topojson from "topojson-client";
-const spainjson = require("./spain.json");
-const d3Composite = require("d3-composite-projections");
 import { latLongCommunities } from "./communities";
-import { stats } from "./stats";
-
-const maxAffected = stats.reduce(
-  (max, item) => (item.value > max ? item.value : max),
-  0
-);
-
-const affectedRadiusScale = d3
-  .scaleLinear()
-  .domain([0, maxAffected])
-  .range([0, 50]); // 50 pixel max radius, we could calculate it relative to width and height
-
-const calculateRadiusBasedOnAffectedCases = (comunidad: string) => {
-  const entry = stats.find(item => item.name === comunidad);
-
-  return entry ? affectedRadiusScale(entry.value) : 0;
-};
+import {
+  infectedFebruary,
+  infectedMarch,
+  ResultEntry
+} from "./stats";
+const spainjson = require("./spain.json");
+const d3Composite = require("d3-composite-projections")
 
 const svg = d3
   .select("body")
@@ -30,13 +18,30 @@ const svg = d3
 
 const aProjection = d3Composite
   .geoConicConformalSpain()
-  // Let's make the map bigger to fit in our resolution
   .scale(3300)
-  // Let's center the map
   .translate([500, 400]);
 
 const geoPath = d3.geoPath().projection(aProjection);
-const geojson = topojson.feature(spainjson, spainjson.objects.ESP_adm1);
+
+const geojson = topojson.feature(
+  spainjson,
+  spainjson.objects.ESP_adm1
+);
+
+const maxAffected = infectedFebruary.reduce(
+  (max, item) => (item.value > max ? item.value : max),
+  0
+);
+
+const affectedRadiusScale = d3
+  .scaleLinear()
+  .domain([0, maxAffected])
+  .range([0, 50]);
+
+const calculateRadiusBasedOnAffectedCases = (comunidad: string) => {
+  const entry = infectedFebruary.find(item => item.name == comunidad);
+  return entry ? affectedRadiusScale(entry.value) : 0;
+};
 
 svg
   .selectAll("path")
@@ -44,7 +49,6 @@ svg
   .enter()
   .append("path")
   .attr("class", "country")
-  // data loaded from json file
   .attr("d", geoPath as any);
 
 svg
@@ -56,3 +60,48 @@ svg
   .attr("r", d => calculateRadiusBasedOnAffectedCases(d.name))
   .attr("cx", d => aProjection([d.long, d.lat])[0])
   .attr("cy", d => aProjection([d.long, d.lat])[1]);
+
+
+
+//update buttons
+/*const updateMap = (infected: ResultEntry[]) => {
+  const maxAffected = infected.reduce(
+    (max, item) => (item.value > max ? item.value : max),
+    0
+  );
+
+  const affectedRadiusScale = d3
+    .scaleLinear()
+    .domain([0, maxAffected])
+    .range([0, 50]);
+
+  const calculateRadiusBasedOnAffectedCases = (comunidad: string) => {
+    const entry = infected.find(item => item.name === comunidad);
+    return entry ? affectedRadiusScale(entry.value) : 0;
+  };
+
+  svg
+    .selectAll("circle")
+    .data(latLongCommunities)
+    .enter()
+    .append("circle")
+    .attr("class", "affected-marker")
+    .attr("r", d => calculateRadiusBasedOnAffectedCases(d.name))
+    .attr("cx", d => aProjection([d.long, d.lat])[0])
+    .attr("cy", d => aProjection([d.long, d.lat])[1]);
+};
+
+document
+  .getElementById("init")
+  .addEventListener("click", function handleInfectedFebruary() {
+    updateMap(infectedFebruary);
+  });
+
+document
+  .getElementById("actual")
+  .addEventListener("click", function handleInfectedMarch() {
+    console.log("cosa")
+    updateMap(infectedMarch);
+  });
+
+  updateMap(infectedFebruary);*/
