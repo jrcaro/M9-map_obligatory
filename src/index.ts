@@ -28,19 +28,31 @@ const geojson = topojson.feature(
   spainjson.objects.ESP_adm1
 );
 
-const maxAffected = infectedFebruary.reduce(
-  (max, item) => (item.value > max ? item.value : max),
-  0
-);
+const calculateRadiusBasedOnAffectedCases = (comunidad: string, data: ResultEntry[]) => {
+  const entry = data.find(item => item.name === comunidad);
+
+  const maxAffected = data.reduce(
+    (max, item) => (item.value > max ? item.value : max),
+    0
+  );
 
 const affectedRadiusScale = d3
-  .scaleLinear()
-  .domain([0, maxAffected])
-  .range([0, 50]);
-
-const calculateRadiusBasedOnAffectedCases = (comunidad: string) => {
-  const entry = infectedFebruary.find(item => item.name == comunidad);
+    .scaleLinear()
+    .domain([0, maxAffected])
+    .clamp(true)
+    .range([0, 50]);
   return entry ? affectedRadiusScale(entry.value) : 0;
+};
+
+const updateCircles = (data: ResultEntry[]) => {
+  console.log("cosa")
+  const circles = svg.selectAll("circle");
+  circles
+    .data(latLongCommunities)
+    .merge(circles as any)
+    .transition()
+    .duration(500)
+    .attr("r", d => calculateRadiusBasedOnAffectedCases(d.name, data));
 };
 
 svg
@@ -57,51 +69,19 @@ svg
   .enter()
   .append("circle")
   .attr("class", "affected-marker")
-  .attr("r", d => calculateRadiusBasedOnAffectedCases(d.name))
+  .attr("r", 15)
+  .attr("r", d => calculateRadiusBasedOnAffectedCases(d.name, infectedFebruary))
   .attr("cx", d => aProjection([d.long, d.lat])[0])
   .attr("cy", d => aProjection([d.long, d.lat])[1]);
-
-
-
-//update buttons
-/*const updateMap = (infected: ResultEntry[]) => {
-  const maxAffected = infected.reduce(
-    (max, item) => (item.value > max ? item.value : max),
-    0
-  );
-
-  const affectedRadiusScale = d3
-    .scaleLinear()
-    .domain([0, maxAffected])
-    .range([0, 50]);
-
-  const calculateRadiusBasedOnAffectedCases = (comunidad: string) => {
-    const entry = infected.find(item => item.name === comunidad);
-    return entry ? affectedRadiusScale(entry.value) : 0;
-  };
-
-  svg
-    .selectAll("circle")
-    .data(latLongCommunities)
-    .enter()
-    .append("circle")
-    .attr("class", "affected-marker")
-    .attr("r", d => calculateRadiusBasedOnAffectedCases(d.name))
-    .attr("cx", d => aProjection([d.long, d.lat])[0])
-    .attr("cy", d => aProjection([d.long, d.lat])[1]);
-};
 
 document
   .getElementById("init")
   .addEventListener("click", function handleInfectedFebruary() {
-    updateMap(infectedFebruary);
+    updateCircles(infectedFebruary);
   });
 
 document
   .getElementById("actual")
   .addEventListener("click", function handleInfectedMarch() {
-    console.log("cosa")
-    updateMap(infectedMarch);
+    updateCircles(infectedMarch);
   });
-
-  updateMap(infectedFebruary);*/
